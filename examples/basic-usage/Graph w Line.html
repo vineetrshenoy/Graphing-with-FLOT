@@ -1,0 +1,376 @@
++<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+	<link type="text/css" rel="stylesheet" href="stylesheet.css"/>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<title>RGDX Level 2</title>
+	<link href="../examples.css" rel="stylesheet" type="text/css">  <!---This links to the stylesheet--->
+	<!--[if lte IE 8]><script language="javascript" type="text/javascript" src="../../excanvas.min.js"></script><![endif]-->
+	<script language="javascript" type="text/javascript" src="../../jquery.js"></script>
+	<script language="javascript" type="text/javascript" src="../../jquery.flot.js"></script>
+	<script type="text/javascript">
+
+var d1 = []; //data set 1, which is the user inputed data
+var d2=[]; // data set 2, which is the log of d1
+var mmax=0;  //this variables stores the slope value that achieves the max R^2 value
+var bmax=0;  //this variables stores the y-intercept value that achieves the max R^2 value
+var rmax=500*-1; //this variables stores the R^2 value closest to one. Initiall set to a very low negative number
+
+
+
+
+// Mean of the observed data (y bar) to calculate R^2
+function computeMean ()
+{
+	var table1=document.getElementById("num");
+	var mean=0;
+	var rows=0;
+	for (var r=1, n=table1.rows.length;r<n;r++)
+	{
+		
+		var celly= table1.rows[r].cells[1].getElementsByTagName("input").item(0).value;
+		celly= parseFloat(celly);
+		if (celly>0)
+		{
+		mean += celly;
+		rows++;
+		}
+	}
+
+	mean/= rows;
+	return mean;
+}
+
+
+
+
+//Calculation of SS(tot) the total sum of the squares, for the R^2 calculation
+function sTot()
+{
+	var mean= computeMean();
+	var table1= document.getElementById("num");
+	var tot=0;
+	for (var r=1, n= table1.rows.length;r<n;r++)
+	{
+		var celly= table1.rows[r].cells[1].getElementsByTagName("input").item(0).value;
+		celly= parseFloat(celly);
+		if (celly>0)
+		{
+			tot += Math.pow((celly-mean),2);
+		}
+		
+
+	}
+	return tot;
+}
+
+
+//Calculation of SS(res), the explained sum of squares, for the R^2 calculations
+function sRes() 
+{
+
+var res=0;
+var table1= document.getElementById("num");
+var table2= document.getElementById("plotLine");
+
+var cellm= parseFloat(table2.rows[1].cells[0].getElementsByTagName("input").item(0).value);
+var cellb= parseFloat(table2.rows[1].cells[1].getElementsByTagName("input").item(0).value);
+
+for (r=1, n=table1.rows.length; r<n;r++)
+{
+	var y= parseFloat(table1.rows[r].cells[1].getElementsByTagName("input").item(0).value);
+	
+	var x= parseFloat(table1.rows[r].cells[0].getElementsByTagName("input").item(0).value);
+	var fi= cellm*x + cellb;
+	if (y>=0)
+	{
+		res +=Math.pow((y-fi),2);
+	}
+
+}
+
+return res;
+
+}
+
+//Calculations of R^2 from sRes() and sTot()
+function calculateR2()
+{
+	var r2=0;
+	var ssTot= sTot();
+	
+	var ssRes= sRes();
+	
+	r2=1-(ssRes/ssTot);
+	
+	return r2;
+}
+
+
+//Sets webpage to initial state when user hits the "clear" button
+function setInitial()
+{
+	
+	var table1=document.getElementById("num")
+	for (var r=1, n=table1.rows.length; r<n;r++)
+	{
+		table1.rows[r].cells[0].getElementsByTagName("input").item(0).value="";
+		table1.rows[r].cells[1].getElementsByTagName("input").item(0).value="";
+	}
+
+	var table2=document.getElementById("plotLine");
+	table2.rows[1].cells[0].getElementsByTagName("input").item(0).value="";
+	table2.rows[1].cells[1].getElementsByTagName("input").item(0).value="";
+	
+	mmax=0;
+	bmax=0;
+	rmax=500*-1;
+
+	d1=[];
+
+	graph();
+
+	document.getElementById("rsting").innerHTML="THE R^2 value is --- ";
+	document.getElementById("slider").innerHTML="Max R^2--->>> ---"+"<br>"+"Max m--->>> ---"+"<br>"+"Max b--->>> ---";
+
+}
+
+
+//Sets the values that create the maximum R^2 value to rmax, mmax, and bmax
+function setMax()
+{
+
+	var table2= document.getElementById("plotLine");
+	var value=[];
+	var rsqaured= calculateR2();
+	var a=(1-rsqaured);
+		
+	if ((1-rsqaured)<(1-rmax))
+	{
+		rmax=rsqaured;
+		
+		mmax=parseFloat(table2.rows[1].cells[0].getElementsByTagName("input").item(0).value);
+		bmax=parseFloat(table2.rows[1].cells[1].getElementsByTagName("input").item(0).value);
+
+	}
+	value.push(rmax);
+	value.push(mmax);
+	value.push(bmax);
+	
+
+	return value;
+}
+
+
+function getData1()
+{
+	
+}
+
+function graph(){
+
+	$(function() {
+
+		
+	d1.length=0;
+	var table1=document.getElementById("num");
+
+	 d2.length=0;
+	 var x=0;
+	 var y=0;
+	 var table2=document.getElementById("plotLine");
+
+	 document.getElementById("rsting").innerHTML="THE R^2 value is --- ";
+	document.getElementById("slider").innerHTML="Max R^2--->>> ---"+"<br>"+"Max m--->>> ---"+"<br>"+"Max b--->>> ---";
+	var options ={
+
+		xaxis:{ 
+			transform: function (v) {return Math.log(v+.1)},
+			inverseTransform: function (v) { return Math.exp(v); }
+		
+	}
+	
+	}
+        for (var r = 1, n = table1.rows.length; r < n; r++) {
+            var cellx= table1.rows[r].cells[0].getElementsByTagName("input").item(0).value;
+
+            var celly= table1.rows[r].cells[1].getElementsByTagName("input").item(0).value;
+			
+
+			
+			if(cellx.length>=1 &&celly.length>=1)
+			{
+				d1.push([cellx,celly]);
+				
+            }
+        }
+
+
+
+         var cellm= table2.rows[1].cells[0].getElementsByTagName("input").item(0).value;
+	 	 cellm= parseFloat(cellm);
+     	 var cellb= table2.rows[1].cells[1].getElementsByTagName("input").item(0).value;
+	  	cellb=parseFloat(cellb);
+        
+        for (var r =0, n = table2.rows.length; r < 1000; r++) {
+           
+			y=cellm*r;
+			y+=cellb;
+			
+			
+			d2.push([r,y]);
+            
+        }
+	
+		
+		
+
+		if(document.getElementById("logbox").checked==true)
+		{
+		$.plot("#placeholder", [ {data:  d1,points: { show: true }}, {data: d2, points:{show:false}}  ], options);
+		}
+		else
+		{
+			$.plot("#placeholder", [ {data:  d1,points: { show: true }}, {data: d2, points:{show:false}} ], {yaxis:{max:2000}, xaxis: {max:1000}} );
+		}
+
+		
+		var r2=calculateR2();
+		var values=setMax();
+
+		if (r2<=1)
+		{
+		document.getElementById("rsting").innerHTML="THE R^2 value is "+ r2;
+		document.getElementById("slider").innerHTML="Max R^2--->>>"+ values[0]+"<br>"+"Max m--->>>"+ values[1]+"<br>"+"Max b--->>>"+ values[2];
+	
+		}
+
+		
+		var tablenum=table1.rows.length;
+		if (table1.rows.length>5)
+		{
+			if(table1.rows[tablenum-1].cells[1].getElementsByTagName("input").item(0).value>0)
+			{
+				addTable();
+			
+			}
+			
+		}
+		
+	});
+
+
+
+
+function addTable()
+{
+	table=document.getElementById("num");
+	table.border=1;
+	var row=document.createElement("tr");
+	table.appendChild(row);
+
+	for(var i=0; i<2;i++)
+	{
+		cell1=document.createElement("td");
+		row.appendChild(cell1);
+		textbox1=document.createElement("input");
+		textbox1.type="number";
+		cell1.appendChild(textbox1);
+	}
+
+
+}
+
+}
+</script>
+
+
+
+</head>
+<body>
+ 
+	
+	
+		
+	</div>
+
+	<div id="content">
+
+		<div class="demo-container">
+			<div id="placeholder" class="demo-placeholder"></div>
+		</div>
+
+		<div id="rsting">
+		</div>
+		<div name="tab" id="tab">
+
+		
+			
+			<input type="submit" id="reset" value="Reset" onclick="return setInitial();">
+			<input type="checkbox" name="logbox" id="logbox" onclick="return graph('false')"> Check for Log plot </input>
+			<table name="num" id="num" border= "1px">
+				<tr> 
+					<td>X-Coordinate</td>
+					<td> Y-Coordinate</td>
+					
+				</tr>
+				<tr>
+					<td> <input id ="first" type="number" onchange="return graph();"></td>
+					<td> <input type="number" onchange="return graph();"></td>
+				<tr>
+					<td> <input type="number" onchange="return graph();"></td>
+					<td> <input type="number" onchange="return graph();"></td>
+				<tr>
+					<td> <input type="number" onchange="return graph();"></td>
+					<td> <input type="number" onchange="return graph();"></td>
+				<tr>
+					<td> <input type="number" onchange="return graph();"></td>
+					<td> <input type="number" onchange="return graph();"></td>
+				<tr>
+					<td> <input type="number" onchange="return graph();"></td>
+					<td> <input type="number" onchange="return graph();"></td>
+
+
+
+			</table>
+
+			
+		</div>		
+
+		<br>
+		<br> 
+		<br>
+		<br>
+
+		<div id="line">
+
+			<table name="plotLine" id="plotLine" border= "1px">
+				<tr> 
+					<td>Slope (m)</td>
+					<td> Y-intercept (b)</td>
+					
+				</tr>
+				<tr>
+					<td> <input id ="slope" type="number" onchange="return graph();"></td>
+					<td> <input id= "intercept" type="number" onchange="return graph();";</td>
+				</tr>
+
+
+
+			</table>
+
+
+
+		</div>
+
+		
+
+	</div>
+
+	<div id="slider" align="left" >
+		</div>
+
+</body>
+</html>

@@ -1,0 +1,25 @@
+#line{
+	position:fixed;
+	right: 400px;
+	top: 530px;
+	width: 300px;
+	
+}
+
+
+#rstring
+{
+	position:fixed;
+	right: 200px;
+	top: 350px;
+	width: 300px;
+	
+}
+
+#slider
+{
+	position: fixed;
+	right: 560px;
+	top: 680px;
+	display: inline-block;
+}
